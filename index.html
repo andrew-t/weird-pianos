@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>scales</title>
+</head>
+<body>
+	<h1>What if pianos were weird???</h1>
+	<p>I don't know! Why not find out?</p>
+	<form>
+		<label>How many white should there be? There are seven in an octave. That doesn't sound right at all. Why not change it?<input id="notes" type="number" min="2" value="7"></label>
+		<label>How many white notes should there be in the first group of white notes? That's the group that starts on C. Why do we start on C and not A? Who knows. Maybe pianos are already weird?<input id="group1" type="number" min="1" value="3"></label>
+		<label>What note should we start on? Zero is C because why not? This is a good way to make minor scales, or whatever cursed nonsense your weird new piano has!<input id="start" type="number" min="0" value="0"></label>
+		<button id="play">Play</button>
+	</form>
+	<div id="keyboard">
+	</div>
+	<style>
+		body {
+			font-family: sans-serif;
+		}
+		label {
+			display: block;
+			width: 100%;
+			min-height: 2em;
+			margin: 2em 0;
+		}
+		input {
+			float: right;
+		}
+		button {
+			display: block;
+			height: 2em;
+			width: 10em;
+			margin: 1em auto;
+		}
+		#keyboard {
+			max-width: 400px;
+			height: 200px;
+			position: relative;
+			margin: 1em auto;
+			cursor: pointer;
+		}
+		#keyboard div {
+			position: absolute;
+		}
+		.white {
+			background: white;
+			height: 100%;
+			border: 1px solid black;
+		}
+		.black {
+			background: black;
+			height: 50%;
+			z-index: 1;
+		}
+		.start {
+			background: #fdd;
+		}
+		.white:hover {
+			background: #ffd;
+		}
+		.black:hover {
+			background: #440;
+		}
+	</style>
+	<script type="text/javascript">
+
+		const audioContext = new (window.AudioContext || window.webkitAudioContext)(),
+			masterGainNode = audioContext.createGain();
+		masterGainNode.connect(audioContext.destination);
+		masterGainNode.gain.value = 0.3;
+		
+		function val(id) {
+			return parseInt(document.getElementById(id).value, 10);
+		}
+
+		function playTone(freq) {
+			const osc = audioContext.createOscillator();
+			osc.connect(masterGainNode);
+
+			const type = 'sine';
+
+			if (type == "custom") {
+				osc.setPeriodicWave(customWaveform);
+			} else {
+				osc.type = type;
+			}
+
+			osc.frequency.value = freq;
+			osc.start();
+
+			return new Promise(resolve => setTimeout(() => {
+				osc.stop();
+				resolve();
+			}, 200));
+		}
+
+		async function run(play) {
+			const notes = val('notes'),
+				group1 = val('group1'),
+				group2 = notes - group1,
+				start = val('start'),
+				blacks = group1 + group2 - 2,
+				total = notes + blacks,
+				interval = 2 ** (1 / total),
+				frequencies = [ 262 ],
+				keyboard = document.getElementById('keyboard');
+
+			document.getElementById('group1').setAttribute('max', notes - 1);
+			document.getElementById('start').setAttribute('max', notes - 1);
+
+			for (let i = 1; i < group1; ++i)
+				frequencies.push(frequencies[i - 1] * interval ** 2);
+			frequencies.push(frequencies[group1 - 1] * interval);
+			for (let i = 1; i < group2; ++i)
+				frequencies.push(frequencies[i + group1 - 1] * interval ** 2);
+
+			console.log({
+				notes, group1, group2, start,
+				blacks, total, interval,
+				frequencies,
+				error: 524 - frequencies[notes - 1] * interval
+			});
+
+			keyboard.innerHTML = '';
+			for (let i = 0; i < notes; ++i) {
+				const white = document.createElement('div');
+				white.classList.add('white');
+				if (i == start) white.classList.add('start');
+				white.style.left = `${100 * i / notes}%`;
+				white.style.width = `${100 / notes}%`;
+				keyboard.appendChild(white);
+				white.addEventListener('click', e => playTone(frequencies[i]));
+				if (i == group1 - 1 | i == notes - 1) continue;
+				const black = document.createElement('div');
+				black.classList.add('black');
+				black.style.left = `${100 * (i + 0.75) / notes}%`;
+				black.style.width = `${50 / notes}%`;
+				keyboard.appendChild(black);
+				black.addEventListener('click', e => playTone(frequencies[i] * interval));
+			}
+
+			if (play) for (let i = 0; i <= notes; ++i) {
+				const n = i + start;
+				let frequency = frequencies[n % notes];
+				if (n >= notes) frequency *= 2;
+				if (n >= notes * 2) frequency *= 2;
+				console.log('Playing', { i, n, frequency });
+				await playTone(frequency);
+			}
+		}
+
+		for (const el of [ ...document.getElementsByTagName('input') ])
+			el.addEventListener('input', e => run(false));
+		document.getElementById('play').addEventListener('click', e => {
+			e.preventDefault();
+			run(true);
+		});
+		run(false);
+
+	</script>
+</body>
+</html>
