@@ -8,12 +8,14 @@
 	<p>I don't know! Why not find out?</p>
 	<form>
 		<label>How many white should there be? There are seven in an octave. That doesn't sound right at all. Why not change it?<input id="notes" type="number" min="2" value="7"></label>
-		<label>How many white notes should there be in the first group of white notes? That's the group that starts on C. Why do we start on C and not A? Who knows. Maybe pianos are already weird?<input id="group1" type="number" min="1" value="3"></label>
+		<label>How many white notes should there be around the first group of black notes? That's the group that starts on C. Why do we start on C and not A? Who knows. Maybe pianos are already weird?<input id="group1" type="number" min="1" value="3"></label>
 		<label>What note should we start on? Zero is C because why not? This is a good way to make minor scales, or whatever cursed nonsense your weird new piano has!<input id="start" type="number" min="0" value="0"></label>
 		<button id="play">Play</button>
 	</form>
-	<div id="keyboard">
-	</div>
+	<div id="keyboard"></div>
+	<p>
+		Erm so this uses equal temprement because oh my god pianos are already super weird and there's a lot of maths that goes into making them sound ok even though strictly speaking, like a bumblebee, theoretically they cannot possibly fly. I mean if anything moreso than a bumblebee, like pianos are massive??? Honestly wild that anyone ever thought they could fly.
+	</p>
 	<style>
 		body {
 			font-family: sans-serif;
@@ -34,7 +36,6 @@
 			margin: 1em auto;
 		}
 		#keyboard {
-			max-width: 400px;
 			height: 200px;
 			position: relative;
 			margin: 1em auto;
@@ -95,6 +96,13 @@
 			}, 200));
 		}
 
+		function playCallback(freq) {
+			return e => {
+				e.stopPropagation();
+				playTone(freq);
+			};
+		}
+
 		async function run(play) {
 			const notes = val('notes'),
 				group1 = val('group1'),
@@ -123,22 +131,29 @@
 			});
 
 			keyboard.innerHTML = '';
-			for (let i = 0; i < notes; ++i) {
-				const white = document.createElement('div');
-				white.classList.add('white');
-				if (i == start) white.classList.add('start');
-				white.style.left = `${100 * i / notes}%`;
-				white.style.width = `${100 / notes}%`;
-				keyboard.appendChild(white);
-				white.addEventListener('click', e => playTone(frequencies[i]));
-				if (i == group1 - 1 | i == notes - 1) continue;
-				const black = document.createElement('div');
-				black.classList.add('black');
-				black.style.left = `${100 * (i + 0.75) / notes}%`;
-				black.style.width = `${50 / notes}%`;
-				keyboard.appendChild(black);
-				black.addEventListener('click', e => playTone(frequencies[i] * interval));
-			}
+			for (let j = 0; j < 2; ++j)
+				for (let i = 0; i < notes; ++i) {
+					const white = document.createElement('div');
+					white.classList.add('white');
+					if (!j && i == start) white.classList.add('start');
+					white.style.left = `${100 * (i + notes * j) / (notes * 2 + 1)}%`;
+					white.style.width = `${100 / (notes * 2 + 1)}%`;
+					keyboard.appendChild(white);
+					white.addEventListener('click', playCallback(frequencies[i] * 2 ** j));
+					if (i == group1 - 1 | i == notes - 1) continue;
+					const black = document.createElement('div');
+					black.classList.add('black');
+					black.style.left = `${100 * (i + notes * j + 0.75) / (notes * 2 + 1)}%`;
+					black.style.width = `${50 / (notes * 2 + 1)}%`;
+					keyboard.appendChild(black);
+					black.addEventListener('click', playCallback(frequencies[i] * interval * 2 ** j));
+				}
+			const white = document.createElement('div');
+			white.classList.add('white');
+			white.style.right = '0';
+			white.style.width = `${100 / (notes * 2 + 1)}%`;
+			keyboard.appendChild(white);
+			white.addEventListener('click', playCallback(frequencies[0] * 4));
 
 			if (play) for (let i = 0; i <= notes; ++i) {
 				const n = i + start;
