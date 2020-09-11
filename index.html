@@ -79,18 +79,9 @@
 		function playTone(freq) {
 			const osc = audioContext.createOscillator();
 			osc.connect(masterGainNode);
-
-			const type = 'sine';
-
-			if (type == "custom") {
-				osc.setPeriodicWave(customWaveform);
-			} else {
-				osc.type = type;
-			}
-
+			osc.type = 'sine';
 			osc.frequency.value = freq;
 			osc.start();
-
 			return new Promise(resolve => setTimeout(() => {
 				osc.stop();
 				resolve();
