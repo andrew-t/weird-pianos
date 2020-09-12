@@ -114,6 +114,7 @@
 			el.addEventListener('mouseup', stopCallback);
 			el.addEventListener('mouseleave', stopCallback);
 			el.addEventListener('mouseenter', playCallback);
+			el.setAttribute('data-frequency', frequency);
 		}
 
 		async function run(play) {
@@ -188,6 +189,49 @@
 			run(true);
 		});
 		run(false);
+
+		const touchOscillators = new Map();
+		function updateTouch(e) {
+			e.stopPropagation();
+			e.preventDefault();
+			const keys = [
+				...document.querySelectorAll('.black'),
+				...document.querySelectorAll('.white')
+			].map(key => ({
+				box: key.getBoundingClientRect(),
+				frequency: parseFloat(key.getAttribute('data-frequency'))
+			}));
+			const active = new Set();
+			for (const touch of e.touches) {
+				const frequency = keys.find(({ box }) =>
+					touch.clientX >= box.x &&
+					touch.clientY >= box.y &&
+					touch.clientX <= box.x + box.width &&
+					touch.clientY <= box.y + box.height
+				)?.frequency;
+				if (!frequency) continue;
+				active.add(touch.identifier);
+				if (touchOscillators.has(touch.identifier)) {
+					touchOscillators.get(touch.identifier).frequency.value = frequency;
+				} else {
+					const osc = audioContext.createOscillator();
+					osc.connect(masterGainNode);
+					osc.type = 'sine';
+					osc.frequency.value = frequency;
+					osc.start();
+					touchOscillators.set(touch.identifier, osc);
+				}
+			}
+			for (const [id] of touchOscillators)
+				if (!active.has(id)) {
+					touchOscillators.get(id).stop();
+					touchOscillators.delete(id);
+				}
+		}
+		window.addEventListener('touchstart', updateTouch);
+		window.addEventListener('touchend', updateTouch);
+		window.addEventListener('touchmove', updateTouch);
+		window.addEventListener('touchcancel', updateTouch);
 
 	</script>
 </body>
