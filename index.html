@@ -88,11 +88,32 @@
 			}, 200));
 		}
 
-		function playCallback(freq) {
-			return e => {
+		function makeKey(el, frequency) {
+			let osc;
+			function playCallback(e) {
+				if (!e.buttons) return;
 				e.stopPropagation();
-				playTone(freq);
-			};
+				e.preventDefault();
+				if (!osc) {
+					osc = audioContext.createOscillator();
+					osc.connect(masterGainNode);
+					osc.type = 'sine';
+					osc.frequency.value = frequency;
+					osc.start();
+				}
+			}
+			function stopCallback(e) {
+				e.stopPropagation();
+				e.preventDefault();
+				if (osc) {
+					osc.stop();
+					osc = null;
+				}
+			}
+			el.addEventListener('mousedown', playCallback);
+			el.addEventListener('mouseup', stopCallback);
+			el.addEventListener('mouseleave', stopCallback);
+			el.addEventListener('mouseenter', playCallback);
 		}
 
 		async function run(play) {
@@ -132,21 +153,21 @@
 					white.style.width = `${100 / (notes * 2 + 1)}%`;
 					white.id = `white-${i + j * notes}`;
 					keyboard.appendChild(white);
-					white.addEventListener('click', playCallback(frequencies[i] * 2 ** j));
+					makeKey(white, frequencies[i] * 2 ** j);
 					if (i == group1 - 1 | i == notes - 1) continue;
 					const black = document.createElement('div');
 					black.classList.add('black');
 					black.style.left = `${100 * (i + notes * j + 0.75) / (notes * 2 + 1)}%`;
 					black.style.width = `${50 / (notes * 2 + 1)}%`;
 					keyboard.appendChild(black);
-					black.addEventListener('click', playCallback(frequencies[i] * interval * 2 ** j));
+					makeKey(black, frequencies[i] * interval * 2 ** j);
 				}
 			const white = document.createElement('div');
 			white.classList.add('white');
 			white.style.right = '0';
 			white.style.width = `${100 / (notes * 2 + 1)}%`;
 			keyboard.appendChild(white);
-			white.addEventListener('click', playCallback(frequencies[0] * 4));
+			makeKey(white, frequencies[0] * 4);
 
 			if (play) for (let i = 0; i <= notes; ++i) {
 				const n = i + start;
