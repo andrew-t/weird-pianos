@@ -130,6 +130,7 @@
 					if (!j && i == start) white.classList.add('start');
 					white.style.left = `${100 * (i + notes * j) / (notes * 2 + 1)}%`;
 					white.style.width = `${100 / (notes * 2 + 1)}%`;
+					white.id = `white-${i + j * notes}`;
 					keyboard.appendChild(white);
 					white.addEventListener('click', playCallback(frequencies[i] * 2 ** j));
 					if (i == group1 - 1 | i == notes - 1) continue;
@@ -153,6 +154,8 @@
 				if (n >= notes) frequency *= 2;
 				if (n >= notes * 2) frequency *= 2;
 				console.log('Playing', { i, n, frequency });
+				document.querySelector('.start').classList.remove('start');
+				document.getElementById(`white-${n}`).classList.add('start');
 				await playTone(frequency);
 			}
 		}
