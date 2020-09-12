@@ -192,6 +192,8 @@
 
 		const touchOscillators = new Map();
 		function updateTouch(e) {
+			// ignore touches that don't start on the keyboard
+			if (!e.target.getAttribute('data-frequency')) return;
 			e.stopPropagation();
 			e.preventDefault();
 			const keys = [
